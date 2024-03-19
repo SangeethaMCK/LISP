@@ -177,7 +177,6 @@ function lambdalisp(input) {
     input = input.slice(1);
   }
   return envi.func1(input.trim().slice(1));
-  
 }
 const valueparser = (input) => {
   input = input.trim();
