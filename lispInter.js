@@ -250,4 +250,4 @@ const stringparser = (input) => {
 };
 console.log(lispInter("(define a 10)"));
 // console.log(env);
-console.log(lispInter("()"));
+console.log(lispInter("(* pi)"));
