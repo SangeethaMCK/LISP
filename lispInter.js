@@ -283,4 +283,4 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
-console.log(lispInter("((lambda (x) (+ x x)) 4)"))
+console.log(lispInter("((lambda (x) (+ x x)) 4)"));
