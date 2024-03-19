@@ -50,7 +50,6 @@ const env = {
   "#t": true,
   "#f": false
 };
-
 const lispInter = (input) => {
   if (input.startsWith("(")) return expParser(input.slice(1).trim());
   if (input.startsWith(")")) return "unexpected";
@@ -95,15 +94,15 @@ const expParser = (input) => {
   }
   return splParser(operator, input);
 };
-
 const splParser = (operator, input) => {
   input = input.trim();
   if (operator.startsWith("if")) return iflisp(input);
   if (operator.startsWith("define")) return definelisp(input);
   if (operator.startsWith("set!")) return setlisp(input);
   if (operator.startsWith("begin")) return beginlisp(input);
-};
+  if (operator.startsWith("lambda")) return lambdalisp(input);
 
+};
 //If
 function iflisp(input) {
   let value, rest, i = 0;
@@ -114,7 +113,7 @@ function iflisp(input) {
     if (i == 2) c = value;
     i++;
     input = rest.trim();
-  } 
+  }
   input = input.slice(1);
   if (i == 3) {
     if (input)
@@ -135,7 +134,7 @@ function definelisp(input) {
 }
 //set!
 function setlisp(input) {
-  let variable="", rest;
+  let variable = "", rest;
   while (input[0] != " ") {
     variable += input[0];
     input = input.slice(1);
@@ -144,16 +143,41 @@ function setlisp(input) {
   console.log(variable)
   if (env[variable]) {
     env[variable] = value;
-    return [value,rest.slice(1).trim()];}
+    return [value, rest.slice(1).trim()];
+  }
   return "Not Found";
 }
 //begin
 function beginlisp(input) {
   let result;
-  while (input != ")") { console.log(lispInter(input));
+  while (input != ")") {
+    console.log(lispInter(input));
     [result, input] = lispInter(input);
   }
   return result;
+}
+//lambda
+function lambdalisp(input) {
+  const envi = {
+    func1: function test(variable) { return lispInter(exp); }
+  }
+  let variable = "", count = 0, exp = "";
+  if (input.trim().startsWith("(")) {
+    input = input.slice(1);
+    while (input[0] !== ")") {
+      if (input == " ") variable += ",";
+      variable += input[0];
+      input = input.slice(1);
+    }
+  } input = input.slice(1).trim();
+  while (count != -1) {
+    if (input[0] == "(") count++;
+    if (input[0] == ")") count--;
+    exp += input[0];
+    input = input.slice(1);
+  }
+  return envi.func1(input.trim().slice(1));
+  
 }
 const valueparser = (input) => {
   input = input.trim();
@@ -260,3 +284,4 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
+console.log(lispInter("((lambda (x) (+ x x)) 4)"))
