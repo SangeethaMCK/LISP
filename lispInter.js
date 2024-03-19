@@ -46,7 +46,9 @@ const env = {
   pow: (numbers) => {
     return Math.pow(numbers[0], numbers[1]);
   },
-  pi : 3.14
+  pi: 3.14,
+  "#t": true,
+  "#f": false
 };
 
 const lispInter = (input) => {
@@ -58,14 +60,14 @@ const expParser = (input) => {
   let operator = "",
     variable = "",
     numbers = [];
-if(input[0]=="(") input=lispInter(input.trim());
+  if (input[0] == "(") input = lispInter(input.trim());
   while (input[0] != " " && input[0] != "(") {
     operator += input[0];
     input = input.slice(1);
   }
   if (env[operator]) {
     while (input[0] != ")") {
-        variable = "";
+      variable = "";
       if (input.trim().startsWith("(")) {
         input = lispInter(input.trim());
         numbers.push(input[0]);
@@ -75,7 +77,7 @@ if(input[0]=="(") input=lispInter(input.trim());
         numbers.push(value);
       } else {
         while (input[0] !== " " && input[0] !== ")") {
-          variable += input[0]; 
+          variable += input[0];
           input = input.slice(1);
         }
         rest = input.trim();
@@ -84,8 +86,9 @@ if(input[0]=="(") input=lispInter(input.trim());
         }
       }
       input = input.trim();
-    } 
+    }
     input = input.slice(1).trim();
+    if (numbers.length == 1 && operator == "-" && input) return [-numbers[0], input];
     if (numbers.length == 1 && operator == "-") return -numbers[0];
     if (input) return [env[operator](numbers), input];
     return env[operator](numbers);
@@ -102,20 +105,27 @@ const splParser = (operator, input) => {
 };
 
 //If
-function iflisp(input) { 
-  let value, rest;  
-  [value, rest] = lispInter(input); 
-  if (value == true) {
-    [value, rest] = lispInter(rest.trim());
-    return value;
+function iflisp(input) {
+  let value, rest, i = 0;
+  while (!input.startsWith(")")) {
+    [value, rest] = lispInter(input);
+    if (i == 0) a = value;
+    if (i == 1) b = value;
+    if (i == 2) c = value;
+    i++;
+    input = rest.trim();
+  } 
+  input = input.slice(1);
+  if (i == 3) {
+    if (input)
+      return [a ? b : c, input];
+    return a ? b : c;
   }
-  [value, rest] = lispInter(rest.trim());
-  [value, rest] = lispInter(rest.trim()); 
-  return value;
+  return "arguments error";
 }
 //define
 function definelisp(input) {
-    let variable="",rest;
+  let variable = "", rest;
   while (input[0] != " ") {
     variable += input[0];
     input = input.slice(1);
@@ -125,20 +135,22 @@ function definelisp(input) {
 }
 //set!
 function setlisp(input) {
-  input = input.slice(4).trim();
+  let variable="", rest;
   while (input[0] != " ") {
     variable += input[0];
     input = input.slice(1);
   }
   [value, rest] = valueparser(input.trim());
-  if (env[variable]) env[variable] = value;
+  console.log(variable)
+  if (env[variable]) {
+    env[variable] = value;
+    return [value,rest.slice(1).trim()];}
   return "Not Found";
 }
 //begin
 function beginlisp(input) {
-  input = input.slice(5).trim();
   let result;
-  while (input != ")") {
+  while (input != ")") { console.log(lispInter(input));
     [result, input] = lispInter(input);
   }
   return result;
@@ -161,7 +173,7 @@ const nullparser = (input) => {
 };
 const boolparser = (input) => {
   if (input.startsWith("true")) return [true, input.slice(4)];
-  if(input.startsWith("#t")) return [true, input.slice(2)];
+  if (input.startsWith("#t")) return [true, input.slice(2)];
   if (input.startsWith("false")) return [false, input.slice(5)];
   if (input.startsWith("#f")) return [false, input.slice(2)];
   return null;
@@ -248,6 +260,3 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
-console.log(lispInter("(define a 10)"));
-// console.log(env);
-console.log(lispInter("(* pi)"));
