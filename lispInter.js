@@ -168,15 +168,15 @@ function lambdalisp(input) {
       if (input == " ") variable += ",";
       variable += input[0];
       input = input.slice(1);
-    }
+    } 
   } input = input.slice(1).trim();
   while (count != -1) {
     if (input[0] == "(") count++;
     if (input[0] == ")") count--;
     exp += input[0];
-    input = input.slice(1);
+    input = input.slice(1).trim();
   }
-  return envi.func1(input.trim().slice(1));
+  return envi.func1(input.trim().slice(0, input.length-1));
 }
 const valueparser = (input) => {
   input = input.trim();
