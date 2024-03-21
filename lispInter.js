@@ -48,7 +48,7 @@ const env = {
   },
   pi: 3.14,
   "#t": true,
-  "#f": false
+  "#f": false,
 };
 const lispInter = (input) => {
   if (input.startsWith("(")) return expParser(input.slice(1).trim());
@@ -59,7 +59,7 @@ const expParser = (input) => {
   let operator = "",
     variable = "",
     numbers = [];
-  if (input[0] == "(") input = lispInter(input.trim());
+  if (input[0] == "(") return lispInter(input.trim()); //
   while (input[0] != " " && input[0] != "(") {
     operator += input[0];
     input = input.slice(1);
@@ -67,6 +67,7 @@ const expParser = (input) => {
   if (env[operator]) {
     while (input[0] != ")") {
       variable = "";
+      input = input.trim()
       if (input.trim().startsWith("(")) {
         input = lispInter(input.trim());
         numbers.push(input[0]);
@@ -128,8 +129,8 @@ function definelisp(input) {
   while (input[0] != " ") {
     variable += input[0];
     input = input.slice(1);
-  }
-  [value, rest] = valueparser(input.trim());
+  } 
+  value = lispInter(input.trim());
   env[variable] = value;
 }
 //set!
@@ -158,25 +159,41 @@ function beginlisp(input) {
 }
 //lambda
 function lambdalisp(input) {
-  const envi = {
-    func1: function test(variable) { return lispInter(exp); }
-  }
-  let variable = "", count = 0, exp = "";
+  let variable = "", count = 0, expression = "", array = [], arguments = '';
   if (input.trim().startsWith("(")) {
     input = input.slice(1);
     while (input[0] !== ")") {
-      if (input == " ") variable += ",";
-      variable += input[0];
+      if (input[0] == " ") {
+        array.push(variable);
+        variable = "";
+      } 
+      variable += input[0].trim();
       input = input.slice(1);
-    } 
-  } input = input.slice(1).trim();
+    }
+  } array.push(variable);
+  console.log(env);
+  input = input.slice(1).trim();
   while (count != -1) {
     if (input[0] == "(") count++;
     if (input[0] == ")") count--;
-    exp += input[0];
-    input = input.slice(1).trim();
+    expression += input[0];
+    input = input.slice(1);
   }
-  return envi.func1(input.trim().slice(0, input.length-1));
+  function test(array){
+    value=lispInter(expression);
+    return test();
+  }
+  // input = input.slice(1).trim();
+  // let i = 0, value;
+  // while (input[0] != ")") {
+  //   if (i < array.length) {
+  //     [value, input] = numparser(input.trim())
+  //     env[array[i]] = value;
+  //     i++;
+  //   }
+  //   input = input.trim()
+  // }
+  return lispInter(expression.slice(0, expression.length - 1));
 }
 const valueparser = (input) => {
   input = input.trim();
@@ -283,4 +300,5 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
-console.log(lispInter("((lambda (x) (+ x x)) 4)"));
+console.log(lispInter("((lambda (r) (* pi (* r r)))2)"));
+// console.log(lispInter("(circle-area 2)"))
