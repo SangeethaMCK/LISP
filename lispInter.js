@@ -49,27 +49,30 @@ const env = {
   pi: 3.14,
   "#t": true,
   "#f": false,
+  // funct1: function testLambda(args){
+  //   return lispInter(express);
+  // }
 };
-const lispInter = (input) => {
-  if (input.startsWith("(")) return expParser(input.slice(1).trim());
+const lispInter = (input, localEnv = env) => { 
+  if (input.startsWith("(")) return expParser(input.slice(1).trim(), localEnv);
   if (input.startsWith(")")) return "unexpected";
-  return env[input] || valueparser(input);
+  return localEnv[input] || valueparser(input);
 };
-const expParser = (input) => {
+const expParser = (input, localEnv) => {
   let operator = "",
     variable = "",
     numbers = [];
-  if (input[0] == "(") return lispInter(input.trim()); //
+  if (input[0] == "(") return lispInter(input.trim(), localEnv); 
   while (input[0] != " " && input[0] != "(") {
     operator += input[0];
     input = input.slice(1);
   }
-  if (env[operator]) {
+  if (localEnv[operator]) {
     while (input[0] != ")") {
       variable = "";
       input = input.trim()
       if (input.trim().startsWith("(")) {
-        input = lispInter(input.trim());
+        input = lispInter(input.trim(), localEnv);
         numbers.push(input[0]);
         input = input[1].trim();
       } else if (numparser(input)) {
@@ -81,8 +84,8 @@ const expParser = (input) => {
           input = input.slice(1);
         }
         rest = input.trim();
-        if (env[variable]) {
-          numbers.push(env[variable]);
+        if (localEnv[variable]) {
+          numbers.push(localEnv[variable]);
         }
       }
       input = input.trim();
@@ -90,25 +93,26 @@ const expParser = (input) => {
     input = input.slice(1).trim();
     if (numbers.length == 1 && operator == "-" && input) return [-numbers[0], input];
     if (numbers.length == 1 && operator == "-") return -numbers[0];
-    if (input) return [env[operator](numbers), input];
-    return env[operator](numbers);
+    if (input) return [localEnv[operator](numbers), input];
+    return localEnv[operator](numbers); 
   }
-  return splParser(operator, input);
+  return splParser(operator, input, localEnv);
 };
-const splParser = (operator, input) => {
+
+const splParser = (operator, input, localEnv) => {
   input = input.trim();
-  if (operator.startsWith("if")) return iflisp(input);
-  if (operator.startsWith("define")) return definelisp(input);
-  if (operator.startsWith("set!")) return setlisp(input);
-  if (operator.startsWith("begin")) return beginlisp(input);
-  if (operator.startsWith("lambda")) return lambdalisp(input);
+  if (operator.startsWith("if")) return iflisp(input, localEnv);
+  if (operator.startsWith("define")) return definelisp(input, localEnv);
+  if (operator.startsWith("set!")) return setlisp(input, localEnv);
+  if (operator.startsWith("begin")) return beginlisp(input, localEnv);
+  if (operator.startsWith("lambda")) return lambdalisp(input, localEnv);
 
 };
 //If
-function iflisp(input) {
-  let value, rest, i = 0;
+function iflisp(input, localEnv) {
+  let value, rest, i = 0, a, b, c;
   while (!input.startsWith(")")) {
-    [value, rest] = lispInter(input);
+    [value, rest] = lispInter(input, localEnv);
     if (i == 0) a = value;
     if (i == 1) b = value;
     if (i == 2) c = value;
@@ -124,17 +128,17 @@ function iflisp(input) {
   return "arguments error";
 }
 //define
-function definelisp(input) {
+function definelisp(input, localEnv) {
   let variable = "", rest;
   while (input[0] != " ") {
     variable += input[0];
     input = input.slice(1);
   } 
-  value = lispInter(input.trim());
-  env[variable] = value;
+  value = lispInter(input.trim(), localEnv); 
+  localEnv[variable] = value;
 }
 //set!
-function setlisp(input) {
+function setlisp(input, localEnv) {
   let variable = "", rest;
   while (input[0] != " ") {
     variable += input[0];
@@ -142,24 +146,24 @@ function setlisp(input) {
   }
   [value, rest] = valueparser(input.trim());
   console.log(variable)
-  if (env[variable]) {
-    env[variable] = value;
+  if (localEnv[variable]) {
+    localEnv[variable] = value;
     return [value, rest.slice(1).trim()];
   }
   return "Not Found";
 }
 //begin
-function beginlisp(input) {
+function beginlisp(input, localEnv) {
   let result;
   while (input != ")") {
-    console.log(lispInter(input));
-    [result, input] = lispInter(input);
+    console.log(lispInter(input, localEnv));
+    [result, input] = lispInter(input, localEnv);
   }
   return result;
 }
 //lambda
-function lambdalisp(input) {
-  let variable = "", count = 0, expression = "", array = [], arguments = '';
+function lambdalisp(input, localEnv) {
+  let variable = "", count = 0, expression = "", array = [];
   if (input.trim().startsWith("(")) {
     input = input.slice(1);
     while (input[0] !== ")") {
@@ -170,31 +174,27 @@ function lambdalisp(input) {
       variable += input[0].trim();
       input = input.slice(1);
     }
-  } array.push(variable);
-  console.log(env);
+  } 
+  array.push(variable);
+
   input = input.slice(1).trim();
   while (count != -1) {
     if (input[0] == "(") count++;
     if (input[0] == ")") count--;
     expression += input[0];
-    input = input.slice(1);
+    input=input.slice(1);
   }
-  function test(array){
-    value=lispInter(expression);
-    return test();
-  }
-  // input = input.slice(1).trim();
-  // let i = 0, value;
-  // while (input[0] != ")") {
-  //   if (i < array.length) {
-  //     [value, input] = numparser(input.trim())
-  //     env[array[i]] = value;
-  //     i++;
-  //   }
-  //   input = input.trim()
-  // }
-  return lispInter(expression.slice(0, expression.length - 1));
+
+  // Return a function that evaluates the expression with the provided arguments
+  return (...args) => {
+    const localScope = { ...localEnv }; // Create a local scope
+    array.forEach((arg, index) => {
+      localScope[arg] = args[index]; // Bind arguments to corresponding variables
+    });
+    return lispInter(expression, localScope); // Evaluate the expression with the local scope
+  };
 }
+
 const valueparser = (input) => {
   input = input.trim();
   const value =
@@ -300,5 +300,6 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
-console.log(lispInter("((lambda (r) (* pi (* r r)))2)"));
-// console.log(lispInter("(circle-area 2)"))
+console.log(lispInter("(define circle-area (lambda (r) (* pi (* r r))))"));
+console.log(env);
+console.log(lispInter("(circle-area 3)"))
