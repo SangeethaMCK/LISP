@@ -46,67 +46,100 @@ const env = {
   pow: (numbers) => {
     return Math.pow(numbers[0], numbers[1]);
   },
+  list: (numbers) => {
+    return [...numbers];
+  },
+  car : (numbers) =>{
+    return [...numbers][0];
+  },
+  // cdr: (numbers)=>{
+  //   return 
+  // }
   pi: 3.14,
   "#t": true,
   "#f": false,
 };
 const lispInter = (input, localEnv = env) => {
-  if (input.startsWith("(")) return expParser(input.slice(1).trim(), localEnv);
+  if (input.startsWith("(")) return expParser(input, localEnv);
   if (input.startsWith(")")) return "unexpected";
   return localEnv[input] || valueparser(input);
 };
 const expParser = (input, localEnv) => {
-  let operator = "",
-    variable = "",
-    numbers = [];
-  if (input[0] == "(") return lispInter(input.trim(), localEnv);
-  while (input[0] != " " && input[0] != "(") {
+  if (input[1] == ")") return input;
+  input = input.slice(1).trim();
+  if (!input) return null;
+  if (input[0] == "(") {
+    [value, input] = expParser(input.trim(), localEnv); 
+
+    let array=[];
+    if (typeof value[0]=== "function") {           
+      input=input.trim();
+      while(input!=")"){
+        [val,input]=lispInter(input.trim());
+        array.push(val);
+      } input=input.slice(1).trim();
+      return value[0](array);                        
+    } else {
+      return [value, input];
+    }
+  }
+  let operator = "";
+  while (input[0] !== " " && input[0] != "(") {
     operator += input[0];
     input = input.slice(1);
   }
-   
-  if (!localEnv[operator])  return splParser(operator, input, localEnv);
-  // if (!localEnv[operator])  return null;
-    while (input[0] != ")") {
-      variable = "";
-      let value;
+  input = input.trim();
+  if (!localEnv[operator]) return splParser(operator, input, localEnv);
+  let arguments = [];
+  while (input[0] != ")") {
+    let variables = "";
+    if (input[0] == "(") {
+      [value, input] = expParser(input.trim(), localEnv);
+      arguments.push(value);
       input = input.trim();
-      if (input.trim().startsWith("(")) {
-        [value, input]= lispInter(input.trim(), localEnv);
-        numbers.push(value);
-      } else if (numparser(input)) {
-        [value, input]= numparser(input);
-        numbers.push(value);
-      } else {
-        while (input[0] !== " " && input[0] !== ")") {
-          variable += input[0];
-          input = input.slice(1);
-        }
-        rest = input.trim();
-        if (localEnv[variable]) {
-          numbers.push(localEnv[variable]);
-        }
-      }
-
-      input=input.trim();
+    } else if (lispInter(input, localEnv)){
+      [variables, input] = lispInter(input.trim(), localEnv);
+      arguments.push(variables);
+      input = input.trim();
     }
-    input = input.slice(1).trim();
-    if (numbers.length == 1 && operator == "-" && input) return [-numbers[0], input];
-    if (numbers.length == 1 && operator == "-") return -numbers[0];
-    if (input) return [env[operator](numbers), input];
-    return env[operator](numbers);
-  };
+    else {
+      while (input[0] !== " " && input[0] !== ")") {
+        variables += input[0];
+        input = input.slice(1);
+      }
+      if (localEnv[variables] || localEnv[variables] == 0) {
+        arguments.push(localEnv[variables]);
+      }
+    }
+    input=input.trim();
+  }
+  input = input.slice(1).trim();
+  if (input) { 
+    if (arguments.length == 1 && operator == "-") return [-arguments[0], input];
+    return [localEnv[operator](arguments), input];
+  }
+  if (arguments.length == 1 && operator == "-") return -arguments[0];
+  return localEnv[operator](arguments);
+};
 const splParser = (operator, input, localEnv) => {
   input = input.trim();
-  if (operator=="if") return iflisp(input, localEnv);
-  if (operator=="define") return definelisp(input, localEnv);
-  if (operator=="set!") return setlisp(input, localEnv);
-  if (operator=="begin") return beginlisp(input, localEnv);
-  if (operator=="lambda") return lambdalisp(input, localEnv);
+  let value=null;
+  if (operator == "if") return ifParser(input, localEnv);
+  if (operator == "define") return  defineParser(input, localEnv);
+  if (operator == "set!") return setParser(input, localEnv);
+  if (operator == "begin") return  beginParser(input, localEnv);
+  if (operator == "lambda") return lambdaParser(input, localEnv);
+  if (operator == "let") return letParser(input, localEnv);
+  return null;
 };
 //If
-function iflisp(input, localEnv) {
-  let value, rest, i = 0, a, b, c;
+function ifParser(input, localEnv) {
+  let value, result;
+  let rest;
+  let a;
+  let b;
+  let c;
+  let i = 0;
   while (!input.startsWith(")")) {
     [value, rest] = lispInter(input, localEnv);
     if (i == 0) a = value;
@@ -114,50 +147,55 @@ function iflisp(input, localEnv) {
     if (i == 2) c = value;
     i++;
     input = rest.trim();
+    if((i==2 && a==true) || i==3 && a==false){
+      result=a?b:c;
+      break;}
   }
   input = input.trim().slice(1);
-  if (i == 3) {
-    if (input)
-      return [a ? b : c, input];
-    return a ? b : c;
-  }
-  return "arguments error";
+  return result;
 }
 //define
-function definelisp(input, localEnv) {
+function defineParser(input, localEnv) {
+  let value;
+  const variable = input.match(/^[^\s(]+/)[0];
+  input = input.slice(variable.length).trim();
+
+  [value, input] = lispInter(input.trim(), localEnv);
+
+  localEnv[variable] = value;
+  input = input.trim().slice(1)
+  return [value, input]; 
+}
+//set!
+function setParser(input, localEnv) {
   let variable = "";
   while (input[0] != " ") {
     variable += input[0];
     input = input.slice(1);
   }
-  value = lispInter(input.trim(), localEnv);
-  localEnv[variable] = value[0];
-}
-//set!
-function setlisp(input, localEnv) {
-  let variable = "", rest;
-  while (input[0] != " ") {
-    variable += input[0];
-    input = input.slice(1);
-  }
-  [value, rest] = valueparser(input.trim());
+  [value, input] = lispInter(input.trim(), localEnv);
   if (localEnv[variable]) {
     localEnv[variable] = value;
-    return [value, rest.slice(1).trim()];
-  }
-  return "Not Found";
+    input = input.slice(1).trim();
+    return [value, input];
+  } else throw "NotFound";
 }
 //begin
-function beginlisp(input, localEnv) {
+function beginParser(input, localEnv) {
   let result;
-  while (input != ")") {
-    [result, input] = lispInter(input, localEnv);
+  while (input[0] != ")") {
+    [result, input] = lispInter(input.trim(), localEnv);
   }
+  input = input.slice(1).trim();
   return result;
 }
 //lambda
-function lambdalisp(input, localEnv) {
-  let variable = "", count = 0, expression = "", array = [];
+function lambdaParser(input, localEnv) {
+  let variable = "";
+  let count = 0;
+  let expression = "";
+  let array = [];
+  let argument = [];
   if (input.trim().startsWith("(")) {
     input = input.slice(1);
     while (input[0] !== ")") {
@@ -171,21 +209,42 @@ function lambdalisp(input, localEnv) {
     input = input.slice(1).trim();
   }
   array.push(variable);
- 
   while (count != -1) {
     if (input[0] == "(") count++;
     if (input[0] == ")") count--;
+    if (count=== -1) break;
     expression += input[0];
     input = input.slice(1);
   } 
-  return [(...argument) => {
-    array.forEach((arg, index) => {
-      localEnv[arg] = argument[index]; 
-      index++;
-    });
-    return lispInter(expression, localEnv)[0]; 
-  }, input];
+  input = input.trim().slice(1);
+  return [
+    (...argument) => {
+      array.forEach((arg, index) => {
+        localEnv[arg] = argument[0][index];
+      });
+      return lispInter(expression, localEnv);
+    },input
+  ];
 }
+//let
+function letParser(input, localEnv) {
+  if (!input.startsWith("(")) return null;
+  input = input.slice(1).trim();
+  while (input[0] != ")") {
+    if (input[0] !== "(") return null;
+    let variable = "";
+    input = input.trim().slice(1);
+    while (input[0] != " ") {
+      variable += input[0];
+      input = input.slice(1);
+    }
+    [value, input] = lispInter(input.trim(), localEnv);
+    localEnv[variable] = value;
+    input = input.slice(1).trim();
+  }
+  return expParser(input.trim(), localEnv);
+}
+//valueparser
 const valueparser = (input) => {
   input = input.trim();
   const value =
@@ -193,9 +252,6 @@ const valueparser = (input) => {
     boolparser(input) ||
     stringparser(input) ||
     numparser(input);
-  if (value && value[1] == "") {
-    return value[0];
-  }
   return value;
 };
 const nullparser = (input) => {
@@ -291,12 +347,7 @@ const stringparser = (input) => {
   return [string, rest];
 };
 
-console.log(lispInter("(if (> (* 11 11) 120) (* 7 6) (+ 5 5))"))
-
-console.log(lispInter("(define r 10)"));
-console.log(lispInter("(* pi (* r r))"))
-
-console.log(lispInter("(define twice (lambda (x) (* 2 x)))"));
-console.log(lispInter("(twice 5)"))
-
-// console.log(lispInter(""))
+console.log(lispInter("(define twice (lambda (x) (* 2 x)))"))
+console.log(lispInter("(define repeat (lambda (f) (lambda (x) (f (f x)))))"))
+console.log(lispInter("((repeat twice) 10)"))
+console.log(lispInter("((repeat (repeat (repeat (repeat twice)))) 10)"))
