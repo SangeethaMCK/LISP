@@ -46,83 +46,47 @@ const env = {
   "#t": true,
   "#f": false,
 };
+const symParser= (input, localEnv) =>{
+  let operator="";
+  while(input[0]!=" " && input[0]!="(" && input[0]!= ")"){
+    operator+=input[0];
+    input=input.slice(1);
+  }
+  input=input.slice(1).trim();
+  if(localEnv[operator])
+    return [localEnv[operator], input];
+  if((operator === "define"||operator === "begin"||operator === "if"||operator === "set!"||operator === "lambda"||operator === "let"))
+    return [operator, input];
+return null;
+}
+const lispEntry=(input, localEnv=env) =>{
+    output=lispInter(input, localEnv);
+    if(output)return output;
+    return null
+}
 const lispInter = (input, localEnv = env) => {
-  return expParser(input, localEnv) || localEnv[input] || valueparser(input);
+  return expParser(input, localEnv) || symParser(input, localEnv) || valueparser(input);
 };
+
 const expParser = (input, localEnv) => {
+  let value="";
   if (!input.startsWith("(")) return null;
   if (input[1] == ")") return input;
   input = input.slice(1).trim();
   if (!input) return null;
-  if (input[0] == "(") {
-    [value, input] = expParser(input.trim(), localEnv);
-    while (typeof value === "object") {
-      value = value[0];
-      if (typeof value === "function") break;
-    }
-    let array = [];
-    if (typeof value === "function") {
-      input = input.trim();
-      while (input[0] != ")") {
-        [val, input] = lispInter(input.trim());
-        array.push(val);
-      }
-      input = input.slice(1).trim();
-      return value(array);
-    } else {
-      return [value, input];
-    }
-  }
-  let operator = "";
-  while (input[0] !== " " && input[0] != "(") {
-    operator += input[0];
-    input = input.slice(1);
-  }
-  input = input.trim();
-  if (!localEnv[operator]) return splParser(operator, input, localEnv);
-  let arguments = [];
-  let array = [];
-  while (input[0] != ")") {
-    let variables = "";
-    if (input[0] == "(") {
-      [value, input] = expParser(input.trim(), localEnv)
-      while (typeof value === "object") {
-        value = value[0];
-        if (typeof value === "function") break;
-      }
-      if (typeof value === "function") {
-        input = input.trim().slice(1);
-        while (input[0] != ")") {
-          [val, input] = lispInter(input.trim(), localEnv);
-          array.push(val);
-        }
-        return [value(array), input];
-      } else {
-        arguments.push(value);
-      }
-    }
-    else if (lispInter(input, localEnv)) {
-      [variables, input] = lispInter(input.trim(), localEnv);
-      arguments.push(variables);
-      input = input.trim();
-    } else {
-      while (input[0] !== " " && input[0] !== ")") {
-        variables += input[0];
-        input = input.slice(1);
-      }
-      if (localEnv[variables] || localEnv[variables] == 0) {
-        arguments.push(localEnv[variables]);
-      }
-    }
-    input = input.trim();
-  }
-  input = input.slice(1).trim();
-  if (input) return [localEnv[operator](arguments), input];
-  return localEnv[operator](arguments);
+ if(input[0]=="("){
+ }
+ [operator, input]= symParser(input.trim(), localEnv);
+ if(!operator) return null;
+ if(typeof operator !=="function") return splParser(input, localEnv)
+ [value, input]=lispInter(input) ;
+if(value){
+  arguments.push(value);
+}
+  return [operator(arguments), input];
 };
+
 const splParser = (operator, input, localEnv) => {
-  input = input.trim();
-  let value = null;
   if (operator == "if") return ifParser(input, localEnv);
   if (operator == "define") return defineParser(input, localEnv);
   if (operator == "set!") return setParser(input, localEnv);
@@ -146,13 +110,16 @@ function ifParser(input, localEnv) {
     if (countArg == 2) arg2 = value;
     countArg++;
     input = rest.trim();
-    if ((countArg == 2 && condition == true) || (countArg == 3 && condition == false)) {
+    if (
+      (countArg == 2 && condition == true) ||
+      (countArg == 3 && condition == false)
+    ) {
       result = condition ? arg1 : arg2;
       break;
     }
   }
   input = input.trim().slice(1);
-  return result;
+  return [result, input];
 }
 //define
 function defineParser(input, localEnv) {
@@ -164,9 +131,8 @@ function defineParser(input, localEnv) {
 
   localEnv[variable] = value;
   input = input.trim().slice(1);
-  if (input)
-    return [value, input];
-  return value;
+  return [value, input];
+  
 }
 //set!
 function setParser(input, localEnv) {
@@ -349,21 +315,23 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
-console.log(lispInter("(define circle-area (lambda (r) (* pi (* r r))))"));
-console.log(lispInter("(circle-area 3)"));
+// console.log(lispEntry("(define circle-area (lambda (r) (* pi (* r r))))"));
+// console.log(lispEntry("(circle-area 3)"));
 
-console.log(
-  lispInter("(define fact (lambda (n) (if (<= n 1) 1 (* n (fact (- n 1))))))")
-);
-console.log(lispInter("(fact 10)"));
-console.log(lispInter("(fact 100)"));
-console.log(lispInter("(circle-area (fact 10))"))
+// console.log(
+//   lispEntry("(define fact (lambda (n) (if (<= n 1) 1 (* n (fact (- n 1))))))")
+// );
+// console.log(lispEntry("(fact 2)"));
+// console.log(lispEntry("(fact 100)"));
+// console.log(lispEntry("(circle-area (fact 10))"));
 
-lispInter("(define twice (lambda (x) (* 2 x)))");
-console.log(lispInter("(twice 5)"));
-console.log(lispInter("((lambda (x) (+ x x)) 4)"))
+// lispEntry("(define twice (lambda (x) (* 2 x)))");
+// console.log(lispEntry("(twice 5)"));
+// console.log(lispEntry("((lambda (x) (+ x x)) 4)"));
 
-lispInter("(define repeat (lambda (f) (lambda (x) (f (f x)))))");
+// console.log(lispEntry("( + ( + ( + 9 ( + 2 2)) 2) ( - 3 4) )"));
+console.log(lispEntry("(+ 5 2)"))
+// lispEntry("(define repeat (lambda (f) (lambda (x) (f (f x)))))");
 
-console.log(lispInter("((repeat twice) 10)"));
-console.log(lispInter("((repeat (repeat twice)) 10)"));
+// console.log(lispEntry("((repeat twice) 10)"));
+// console.log(lispEntry("((repeat (repeat twice)) 10)"));
