@@ -54,10 +54,8 @@ const symParser = (input, localEnv) => {
   }
   if (!localEnv[operator]) return null;
   return [localEnv[operator], input];
-
 }
 const lispEntry = (input, localEnv = env) => {
-  console.log("input at entry: ", input)
   let array = [];
   [output, input] = lispInter(input, localEnv);
   if (!input) return (output);
@@ -81,7 +79,7 @@ const expParser = (input, localEnv) => {
   value = splParser(input, localEnv)
   if (value) return value;
   input = input.trim();
-  const opParsed= symParser(input.trim(), localEnv) || expParser(input.trim(), localEnv)
+  const opParsed= expParser(input.trim(), localEnv) ||symParser(input.trim(), localEnv) ;
   const operator=opParsed[0];
   input=opParsed[1].trim();
   if (!operator) return null;
@@ -123,11 +121,12 @@ function ifParser(input, localEnv) {
     if (countArg == 2) arg2 = value;
     countArg++;
     input = rest.trim();
-    if (
-      (countArg == 2 && condition == true) ||
-      (countArg == 3 && condition == false)
-    ) {
-      result = condition ? arg1 : arg2;
+    if(countArg == 2 && condition == true) {
+      result=arg1;
+      [value, rest] = lispInter(input, localEnv);
+    }
+      if(countArg == 3 && condition == false){
+      result = arg2;
       break;
     }
   }
@@ -181,16 +180,14 @@ function beginParser(input, localEnv) {
 }
 //lambda
 function lambdaParser(input, localEnv) {
-  console.log("input in lambda=" ,input);
   if (!input.startsWith("lambda")) return null;
   input = input.slice(7);
   let variable = "";
   let count = 0;
   let expression = "";
   let array = [];
-  let argument = [];
   if (input.trim().startsWith("(")) {
-    input = input.trim().slice(1);
+    input = input.slice(1).trim();
     while (input[0] !== ")") {
       if (input[0] == " ") {
         array.push(variable);
@@ -209,15 +206,16 @@ function lambdaParser(input, localEnv) {
     expression += input[0];
     input = input.slice(1);
   }
-  input = input.trim().slice(1);
+  input = input.slice(1).trim();
   return [
     (...argument) => {
+      let lambdaEnv = Object.assign({}, localEnv);
       array.forEach((arg, index) => {
-        localEnv[arg] = argument[0][index];
+        lambdaEnv[arg] = argument[0][index];
       });
-      return lispInter(expression, localEnv)[0];
+      return lispInter(expression, lambdaEnv)[0];
     },
-    input,
+    input
   ];
 }
 //let
@@ -342,11 +340,13 @@ const stringparser = (input) => {
   }
   return [string, rest];
 };
-
-console.log(lispEntry('(define x 10)'))
+// console.log(lispEntry("(begin (define r 20) (define l ((if (< 4 5) + -) r r)) (* r l))"))
+// console.log(lispEntry('(define x 10)'))
 console.log(lispEntry("(define twice (lambda (x) (* 2 x)))"));
-console.log(lispEntry("(twice 5)"));
+// console.log(lispEntry("(twice 5)"));
 console.log(lispEntry("(define repeat (lambda (f) (lambda (x) (f (f x)))))"));
 console.log(lispEntry("((repeat twice) 10)"));
 console.log(lispEntry("((repeat (repeat twice)) 10)"));
-console.log(lispEntry('(* 10 (+ 10 10))'))
+console.log(lispEntry("((repeat (repeat (repeat twice))) 10)"));
+console.log(lispEntry("((repeat (repeat (repeat (repeat twice)))) 10)"));
+console.log(lispEntry('()'))
