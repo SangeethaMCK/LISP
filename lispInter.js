@@ -120,7 +120,7 @@ const splParser = (input, localEnv) => {
   return null;
 };
 //If
-function ifParser(input, localEnv) {
+const ifParser= (input, localEnv) => {
   let value, result, condition;
   [value, input] = lispInter(input, localEnv);
   condition = value;
@@ -142,8 +142,7 @@ function ifParser(input, localEnv) {
   input = input.trim().slice(1);
   return [result, input];
 }
-//define
-function defineParser(input, localEnv) {
+const defineParser= (input, localEnv) => {
   let value, variable = "";
   while (input[0] != " " && input[0] != "(" && input[0] != ")") {
     if (/[0-9]/.test(input[0])) throw "error";
@@ -157,7 +156,7 @@ function defineParser(input, localEnv) {
   return [value, input.trim()];
 }
 //set!
-function setParser(input, localEnv) {
+const setParser= (input, localEnv) => {
   let variable = "";
   while (input[0] != " ") {
     variable += input[0];
@@ -171,7 +170,7 @@ function setParser(input, localEnv) {
   } else throw "NotFound";
 }
 //begin
-function beginParser(input, localEnv) {
+const beginParser= (input, localEnv) =>{
   let result;
   while (input[0] != ")") {
     [result, input] = lispInter(input.trim(), localEnv);
@@ -180,7 +179,7 @@ function beginParser(input, localEnv) {
   return [result, input];
 }
 //lambda
-function lambdaParser(input, localEnv) {
+const lambdaParser= (input, localEnv) =>{
   let variable = "",
     expression = "",
     array = [];
@@ -211,7 +210,7 @@ function lambdaParser(input, localEnv) {
   ];
 }
 //let : (let ((x 2) (y 3))(* x y))
-function letParser(input, localEnv) {
+const letParser= (input, localEnv) =>{
   if (!input.startsWith("(")) return null;
   input = input.slice(1).trim();
   while (input[0] != ")") {
